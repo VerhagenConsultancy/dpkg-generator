@@ -41,13 +41,14 @@ endif
 
 default: all
 
-$(BUILD_DIR)/$(COMPAT_FILE):
-	@mkdir -p $(@D)
+$(BUILD_DIR):
+	@mkdir --parents $@
+
+$(BUILD_DIR)/$(COMPAT_FILE): $(BUILD_DIR)
 	cp -r $(DEBIAN_DIR) $(BUILD_DIR)/
 	rm $(BUILD_DIR)/debian/*.in
 
-$(BUILD_DIR)/.gitchangelog.rc: $(GITCHANGELOG_RC)
-	@mkdir -p $(@D)
+$(BUILD_DIR)/.gitchangelog.rc: $(BUILD_DIR) $(GITCHANGELOG_RC)
 	cp $(GITCHANGELOG_RC) $(BUILD_DIR)/$(GITCHANGELOG_RC_TEMP)
 	sed -i 's@output_engine = .*$$@output_engine = makotemplate(\"$(CURDIR)/debian-changelog.tpl\")@g' $(BUILD_DIR)/$(GITCHANGELOG_RC_TEMP)
 	mv $(BUILD_DIR)/$(GITCHANGELOG_RC_TEMP) $@
@@ -61,12 +62,10 @@ $(BUILD_DIR)/$(CHANGELOG_FILE): $(GITCHANGELOG_TEMPLATE) $(BUILD_DIR)/.gitchange
 	sed -i "s/@MAINTAINER_EMAIL@/$(MAINTAINER_EMAIL)/g" $(BUILD_DIR)/$(CHANGELOG_TEMP)
 	mv $(BUILD_DIR)/$(CHANGELOG_TEMP) $@
 
-$(BUILD_DIR)/$(CONTROL_FILE): $(CONTROL_IN) $(BUILD_DIR)/$(COMPAT_FILE)
-	@mkdir -p $(@D)
+$(BUILD_DIR)/$(CONTROL_FILE): $(CONTROL_IN) $(BUILD_DIR) $(BUILD_DIR)/$(COMPAT_FILE)
 	cp $(CONTROL_IN) $(BUILD_DIR)/$(CONTROL_FILE)
 
-$(BUILD_DIR)/$(RULES_FILE): $(RULES_IN) $(BUILD_DIR)/$(COMPAT_FILE)
-	@mkdir -p $(@D)
+$(BUILD_DIR)/$(RULES_FILE): $(RULES_IN) $(BUILD_DIR) $(BUILD_DIR)/$(COMPAT_FILE)
 	cp $(RULES_IN) $(BUILD_DIR)/$(RULES_TEMP)
 	sed -i "s#@SYSTEM_DESCRIPTION@#$(SYSTEM_DESCRIPTION)#g" $(BUILD_DIR)/$(RULES_TEMP)
 	sed -i "s/@VERSION@/$(VERSION)/g" $(BUILD_DIR)/$(RULES_TEMP)
@@ -92,4 +91,4 @@ list:
 	@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | egrep -v -e '^[^[:alnum:]]' -e '^$@$$'
 
 all: prepare
-.PHONY: all clean list
+.PHONY: all prepare clean list
